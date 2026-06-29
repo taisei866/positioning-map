@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ポジショニングマップ</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --q1-bg: #dbeafe; --q1-accent: #2563eb;
+  --q2-bg: #ede9fe; --q2-accent: #7c3aed;
+  --q3-bg: #dcfce7; --q3-accent: #16a34a;
+  --q4-bg: #ffedd5; --q4-accent: #ea580c;
+  --dark: #0f172a; --text: #1e293b; --muted: #64748b;
+  --border: #e2e8f0; --card: #ffffff;
+}
+
+body {
+  font-family: "Hiragino Sans", "Yu Gothic UI", "Meiryo", system-ui, sans-serif;
+  background: #f1f5f9;
+  color: var(--text);
+  min-height: 100vh;
+}
+
+/* ─── HEADER ─── */
+header {
+  background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%);
+  color: white;
+  text-align: center;
+  padding: 40px 24px 32px;
+}
+header h1 {
+  font-size: clamp(18px, 3vw, 26px);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  margin-bottom: 6px;
+}
+header p { font-size: 13px; color: #94a3b8; margin-top: 6px; }
+.axis-desc {
+  display: inline-flex;
+  gap: 16px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.axis-chip {
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 11px;
+  color: #cbd5e1;
+}
+
+/* ─── MAP SECTION ─── */
+.map-section { max-width: 900px; margin: 36px auto; padding: 0 16px; }
+
+.map-outer {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+  padding: 24px;
+}
+
+.map-title { font-size: 15px; font-weight: 800; margin-bottom: 20px; color: var(--dark); }
+
+.map-layout {
+  display: grid;
+  grid-template-areas:
+    ". top ."
+    "left grid right"
+    ". bottom .";
+  grid-template-columns: 36px 1fr 36px;
+  grid-template-rows: 36px 1fr 36px;
+  gap: 4px;
+}
+
+.axis-top    { grid-area: top;    text-align: center; }
+.axis-bottom { grid-area: bottom; text-align: center; }
+.axis-left   { grid-area: left;   writing-mode: vertical-rl; transform: rotate(180deg); }
+.axis-right  { grid-area: right;  writing-mode: vertical-rl; }
+
+.axis-top, .axis-bottom, .axis-left, .axis-right {
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; color: var(--muted); gap: 4px;
+}
+
+.map-grid {
+  grid-area: grid;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 3px;
+  background: var(--border);
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.quadrant {
+  padding: 16px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 200px;
+}
+.q1 { background: var(--q1-bg); }
+.q2 { background: var(--q2-bg); }
+.q3 { background: var(--q3-bg); }
+.q4 { background: var(--q4-bg); }
+
+.q-tag {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  padding: 2px 7px;
+  border-radius: 20px;
+  color: white;
+  display: inline-block;
+  margin-bottom: 4px;
+}
+.q1 .q-tag { background: var(--q1-accent); }
+.q2 .q-tag { background: var(--q2-accent); }
+.q3 .q-tag { background: var(--q3-accent); }
+.q4 .q-tag { background: var(--q4-accent); }
+
+.q-subtitle {
+  font-size: 10px;
+  color: var(--muted);
+  font-style: italic;
+  margin-bottom: 6px;
+}
+
+.persons-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* ─── PERSON BUBBLE (in map) ─── */
+.person-bubble {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  width: 64px;
+}
+
+.bubble-img-wrap {
+  width: 54px; height: 54px; position: relative;
+}
+
+.bubble-img {
+  width: 54px; height: 54px;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: top center;
+  border: 3px solid white;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+  transition: transform 0.18s, box-shadow 0.18s;
+  display: block;
+  background: #e2e8f0;
+}
+.person-bubble:hover .bubble-img {
+  transform: scale(1.14) translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+}
+
+.bubble-fallback {
+  width: 54px; height: 54px;
+  border-radius: 50%;
+  border: 3px solid white;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; font-weight: 800; color: white;
+  transition: transform 0.18s;
+}
+.person-bubble:hover .bubble-fallback { transform: scale(1.14) translateY(-2px); }
+.q1 .bubble-fallback { background: var(--q1-accent); }
+.q2 .bubble-fallback { background: var(--q2-accent); }
+.q3 .bubble-fallback { background: var(--q3-accent); }
+.q4 .bubble-fallback { background: var(--q4-accent); }
+
+.bubble-name {
+  font-size: 10px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--text);
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+/* ─── GALLERY SECTION ─── */
+.gallery-section {
+  max-width: 900px;
+  margin: 0 auto 40px;
+  padding: 0 16px;
+}
+
+.gallery-outer {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+  padding: 24px;
+}
+
+.gallery-title { font-size: 15px; font-weight: 800; margin-bottom: 20px; color: var(--dark); }
+
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 12px;
+}
+
+.gallery-card {
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px 8px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.gallery-card:hover {
+  background: white;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+  transform: translateY(-3px);
+  border-color: #cbd5e1;
+}
+
+.gallery-img {
+  width: 68px; height: 68px;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: top center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  background: #e2e8f0;
+}
+
+.gallery-fallback {
+  width: 68px; height: 68px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; font-weight: 800; color: white;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.gallery-name { font-size: 12px; font-weight: 800; text-align: center; }
+.gallery-co   { font-size: 10px; color: var(--muted); text-align: center; }
+.gallery-quote {
+  font-size: 10px; color: #555; text-align: center;
+  font-style: italic; line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.q-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  display: inline-block; margin-right: 4px;
+}
+.dot-q1 { background: var(--q1-accent); }
+.dot-q2 { background: var(--q2-accent); }
+.dot-q3 { background: var(--q3-accent); }
+.dot-q4 { background: var(--q4-accent); }
+
+.gallery-quadrant {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+}
+
+/* ─── TOOLTIP ─── */
+#tooltip {
+  position: fixed;
+  z-index: 9999;
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 0;
+  width: 280px;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.15);
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.15s, transform 0.15s;
+  overflow: hidden;
+}
+#tooltip.visible { opacity: 1; transform: translateY(0); }
+
+.tip-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 14px 12px;
+  border-bottom: 1px solid #f1f5f9;
+}
+.tip-img {
+  width: 48px; height: 48px; border-radius: 50%;
+  object-fit: cover; object-position: top;
+  flex-shrink: 0; background: #e2e8f0;
+  border: 2px solid var(--border);
+}
+.tip-fallback {
+  width: 48px; height: 48px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; font-weight: 800; color: white;
+  flex-shrink: 0; border: 2px solid var(--border);
+}
+.tip-name-block {}
+.tip-name { font-size: 15px; font-weight: 800; }
+.tip-co { font-size: 11px; color: var(--muted); }
+
+.tip-body { padding: 12px 14px; }
+.tip-quote {
+  font-style: italic;
+  color: #334155;
+  font-size: 12px;
+  background: #f8fafc;
+  border-left: 3px solid #94a3b8;
+  padding: 7px 10px;
+  border-radius: 0 6px 6px 0;
+  margin-bottom: 10px;
+  line-height: 1.6;
+}
+.tip-reason { font-size: 12px; color: #475569; line-height: 1.6; }
+
+.tip-footer {
+  padding: 8px 14px;
+  background: #f8fafc;
+  border-top: 1px solid #f1f5f9;
+  font-size: 10px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+footer {
+  text-align: center;
+  padding: 24px;
+  font-size: 11px;
+  color: #94a3b8;
+}
+footer a { color: #94a3b8; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>偉人ポジショニングマップ</h1>
+  <p>日本を代表する経営者・起業家たちのビジネス哲学を2軸で分類</p>
+  <div class="axis-desc">
+    <span class="axis-chip">縦軸：客観ニーズ ↔ 主観ウォンツ</span>
+    <span class="axis-chip">横軸：機能・モノ ↔ 情緒・コト</span>
+  </div>
+</header>
+
+<!-- MAP -->
+<div class="map-section">
+  <div class="map-outer">
+    <div class="map-title">📍 ポジショニングマップ</div>
+    <div class="map-layout">
+
+      <div class="axis-top">
+        <span>⬆</span> 客観ニーズ（社会が必要としている）
+      </div>
+      <div class="axis-left">
+        ◀ 機能・モノ（プロダクト）
+      </div>
+      <div class="map-grid">
+
+        <!-- Q1: 左上 客観×モノ -->
+        <div class="quadrant q1">
+          <div>
+            <span class="q-tag">第1象限</span>
+            <div class="q-subtitle">成長社会の王道｜大量生産・効率化モデル</div>
+          </div>
+          <div class="persons-row">
+            <div class="person-bubble" data-key="浅野総一郎">
+              <div class="bubble-img-wrap">
+                <img class="bubble-img" src="https://commons.wikimedia.org/wiki/Special:FilePath/Asano_souichiro.jpg?width=200" alt="浅野総一郎" onerror="imgFallback(this,'総')">
+              </div>
+              <span class="bubble-name">浅野総一郎</span>
+            </div>
+            <div class="person-bubble" data-key="小平浪平">
+              <div class="bubble-img-wrap">
+                <img class="bubble-img" src="https://commons.wikimedia.org/wiki/Special:FilePath/Namihei_Odaira_Portrait_c1910.png?width=200" alt="小平浪平" onerror="imgFallback(this,'浪')">
+              </div>
+              <span class="bubble-name">小平浪平</span>
+            </div>
+            <div class="person-bubble" data-key="磯野長蔵">
+              <div class="bubble-img-wrap">
+                <img class="bubble-img" src="https://ja.wikipedia.org/wiki/Special:FilePath/%E7%A3%AF%E9%87%8E%E9%95%B7%E8%94%B5.jpg?width=200" alt="磯野長蔵" onerror="imgFallback(this,'長')">
+              </div>
+              <span class="bubble-name">磯野長蔵</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Q3: 右上 客観×コト -->
+        <div class="quadrant q3">
+          <div>
+            <span class="q-tag">第3象限</span>
+            <div class="q-subtitle">DX・ソリューションモデル｜先回りサービス</div>
+          </div>
+          <div class="persons-row">
+            <div class="person-bubble" data-key="小倉昌男">
+              <div class="bubble-img-wrap">
+                <img class="bubble-img" src="https://ja.wikipedia.org/wiki/Special:FilePath/%E5%B0%8F%E5%80%89%E6%98%8C%E7%94%B7.jpg?width=200" alt="小倉昌男" onerror="imgFallback(this,'昌')">
+              </div>
+              <span class="bubble-name">小倉昌男</span>
+            </div>
+            <div class="person-bubble" data-key="大原孫三郎">
+              <div class="bubble-img-wrap">
+                <img class="bubble-img" src="https://commons.wikimedia.org/wiki/Special:FilePath/Magosaburo_Ohara.jpg?width=200" alt="大原孫三郎" onerror="imgFallback(this,'孫')">
+              </div>
+              <span class="bubble-name">大原孫三郎</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Q2: 左下 主観×モノ -->
+        <div class="quadrant q2">
+          <div>
+            <span class="q-tag">第2象限</span>
+            <div class="q-subtitle">プロダクトアウトの極致｜狂気の職人モデル</div>
+          </div>
+          <div class="persons-row">
+            <div class="person-bubble" data-key="竹鶴政孝">
+              <div class="bubble-img-wrap">
+                <img class="bubble-img" src="https://commons.wikimedia.org/wiki/Special:FilePath/NO_SOLO_PORTRAIT.jpg" alt="竹鶴政孝" onerror="imgFallback(this,'政')">
+              </div>
+              <span class="bubble-name">竹鶴政孝</span>
+            </div>
+            <div class="person-bubble" data-key="田中久重">
+              <div class="bubble-img-wrap">
+                <img class="bubble-img" src="https://commons.wikimedia.org/wiki/Special:FilePath/TanakaHisashige.jpg?width=200" alt="田中久重" onerror="imgFallback(this,'久')">
+              </div>
+              <span class="bubble-name">田中久重</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Q4: 右下 主観×コト -->
+        <div class="quadrant q4">
+          <div>
+            <span class="q-tag">第4象限</span>
+            <div class="q-subtitle">成熟社会の王道｜共感・マインドシェア獲得モデル</div>
+          </div>
+          <div class="persons-row">
+            <div class="person-bubble" data-key="中内㓛">
+              <div class="bubble-img-wrap">
+                <img class="bubble-img" src="https://ja.wikipedia.org/wiki/Special:FilePath/%E4%B8%AD%E5%86%85%E5%8A%9F.jpg?width=200" alt="中内㓛" onerror="imgFallback(this,'功')">
+              </div>
+              <span class="bubble-name">中内㓛</span>
+            </div>
+            <div class="person-bubble" data-key="御木本幸吉">
+              <div class="bubble-img-wrap">
+                <img class="bubble-img" src="https://commons.wikimedia.org/wiki/Special:FilePath/MIKIMOTO_Kokichi.jpg?width=200" alt="御木本幸吉" onerror="imgFallback(this,'幸')">
+              </div>
+              <span class="bubble-name">御木本幸吉</span>
+            </div>
+            <div class="person-bubble" data-key="益田孝">
+              <div class="bubble-img-wrap">
+                <img class="bubble-img" src="https://commons.wikimedia.org/wiki/Special:FilePath/Masuda_Takashi.jpg?width=200" alt="益田孝" onerror="imgFallback(this,'孝')">
+              </div>
+              <span class="bubble-name">益田孝</span>
+            </div>
+            <div class="person-bubble" data-key="福原信三">
+              <div class="bubble-img-wrap">
+                <img class="bubble-img" src="https://ja.wikipedia.org/wiki/Special:FilePath/%E7%A6%8F%E5%8E%9F%E4%BF%A1%E4%B8%89.jpg?width=200" alt="福原信三" onerror="imgFallback(this,'信')">
+              </div>
+              <span class="bubble-name">福原信三</span>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /map-grid -->
+      <div class="axis-right">
+        情緒・コト（サービス） ▶
+      </div>
+      <div class="axis-bottom">
+        ⬇ 主観ウォンツ（自分がやりたい）
+      </div>
+    </div><!-- /map-layout -->
+  </div>
+</div>
+
+<!-- GALLERY -->
+<div class="gallery-section">
+  <div class="gallery-outer">
+    <div class="gallery-title">👤 偉人ギャラリー｜ホバーで詳細表示</div>
+    <div class="gallery-grid" id="gallery"></div>
+  </div>
+</div>
+
+<footer>
+  画像出典：Wikimedia Commons（パブリックドメイン） ／ 情報は諸説あります
+</footer>
+
+<!-- TOOLTIP -->
+<div id="tooltip">
+  <div class="tip-header">
+    <img class="tip-img" id="tip-img" src="" alt="">
+    <div class="tip-fallback" id="tip-fallback" style="display:none"></div>
+    <div class="tip-name-block">
+      <div class="tip-name" id="tip-name"></div>
+      <div class="tip-co" id="tip-co"></div>
+    </div>
+  </div>
+  <div class="tip-body">
+    <div class="tip-quote" id="tip-quote"></div>
+    <div class="tip-reason" id="tip-reason"></div>
+  </div>
+  <div class="tip-footer" id="tip-footer"></div>
+</div>
+
+<script>
+// ─── DATA ───
+const PERSONS = {
+  "浅野総一郎": {
+    company: "浅野財閥",
+    quote: "「人の三倍働け」",
+    quadrant: "q1", qdotClass: "dot-q1", qlabel: "第1象限",
+    reason: "インフラが不足する社会（客観）に対し、圧倒的な労働量でモノを供給し続けた。水売りの青年から財閥を一代で築いた。",
+    img: "https://commons.wikimedia.org/wiki/Special:FilePath/Asano_souichiro.jpg?width=200",
+    initial: "総"
+  },
+  "小平浪平": {
+    company: "日立製作所",
+    quote: "「自分で作る」",
+    quadrant: "q1", qdotClass: "dot-q1", qlabel: "第1象限",
+    reason: "海外製に頼らず国産電気機械（モノ）を自前技術で生み出し、日本の近代化（客観ニーズ）を支えた。自主技術は独立の根幹。",
+    img: "https://commons.wikimedia.org/wiki/Special:FilePath/Namihei_Odaira_Portrait_c1910.png?width=200",
+    initial: "浪"
+  },
+  "磯野長蔵": {
+    company: "キリンビール",
+    quote: "「品質はブランドの命」",
+    quadrant: "q1", qdotClass: "dot-q1", qlabel: "第1象限",
+    reason: "物資不足の時代でもビールというモノの品質（客観的基準）を一切妥協せず、キリンを日本最大のビールブランドに育てた。",
+    img: "https://ja.wikipedia.org/wiki/Special:FilePath/%E7%A3%AF%E9%87%8E%E9%95%B7%E8%94%B5.jpg?width=200",
+    initial: "長"
+  },
+  "竹鶴政孝": {
+    company: "ニッカウイスキー",
+    quote: "「10年寝かせる」",
+    quadrant: "q2", qdotClass: "dot-q2", qlabel: "第2象限",
+    reason: "効率や短期利益を無視し「本物のウイスキーを作りたい」という主観の執念でモノづくりに没頭。スコットランドへ単身渡り技術を習得。NHK朝ドラ「マッサン」のモデル。",
+    img: "https://commons.wikimedia.org/wiki/Special:FilePath/NO_SOLO_PORTRAIT.jpg",
+    initial: "政"
+  },
+  "田中久重": {
+    company: "東芝（創業者）",
+    quote: "「知識は失敗より学ぶ」",
+    quadrant: "q2", qdotClass: "dot-q2", qlabel: "第2象限",
+    reason: "失敗を恐れず自分の好奇心（主観）のままにカラクリ人形や万年時計を発明し続けた「東洋のエジソン」。82歳まで現役で発明を続けた。",
+    img: "https://commons.wikimedia.org/wiki/Special:FilePath/TanakaHisashige.jpg?width=200",
+    initial: "久"
+  },
+  "小倉昌男": {
+    company: "ヤマト運輸",
+    quote: "「サービスが先、利益は後」",
+    quadrant: "q3", qdotClass: "dot-q3", qlabel: "第3象限",
+    reason: "「個人が荷物を手軽に送れない」という社会課題（客観ニーズ）に対し、宅急便という全く新しい体験（コト）を先回りで提供。役員全員の反対を押し切って実現した。",
+    img: "https://ja.wikipedia.org/wiki/Special:FilePath/%E5%B0%8F%E5%80%89%E6%98%8C%E7%94%B7.jpg?width=200",
+    initial: "昌"
+  },
+  "大原孫三郎": {
+    company: "クラレ（倉敷）",
+    quote: "「世のため人のため」",
+    quadrant: "q3", qdotClass: "dot-q3", qlabel: "第3象限",
+    reason: "利益至上主義に陥らず、病院・美術館・農業研究所の設立など社会に必要な文化・安心（コト）を客観的視点で提供。大原美術館は100年後も倉敷に残る。",
+    img: "https://commons.wikimedia.org/wiki/Special:FilePath/Magosaburo_Ohara.jpg?width=200",
+    initial: "孫"
+  },
+  "中内㓛": {
+    company: "ダイエー",
+    quote: "「魂の叫びを商売にしろ」",
+    quadrant: "q4", qdotClass: "dot-q4", qlabel: "第4象限",
+    reason: "戦場でつぶやいた「うまいすき焼きを腹いっぱい食って死にたい」という個人的欲求（主観）から、日本中に食の豊かさ（コト）を届ける流通革命を起こした。",
+    img: "https://ja.wikipedia.org/wiki/Special:FilePath/%E4%B8%AD%E5%86%85%E5%8A%9F.jpg?width=200",
+    initial: "功"
+  },
+  "御木本幸吉": {
+    company: "ミキモト",
+    quote: "「世界中の女性の首を真珠で締めてみせる」",
+    quadrant: "q4", qdotClass: "dot-q4", qlabel: "第4象限",
+    reason: "うどん屋の息子が抱いた常識外れの妄想（主観）を掲げ、真珠養殖を世界で初めて成功させ「真珠の王様」に。単なる装飾品ではなく「真珠を身につける喜び（コト）」を世界中に広めた。",
+    img: "https://commons.wikimedia.org/wiki/Special:FilePath/MIKIMOTO_Kokichi.jpg?width=200",
+    initial: "幸"
+  },
+  "益田孝": {
+    company: "三井物産",
+    quote: "「金が欲しいのではない、仕事がしたいのだ」",
+    quadrant: "q4", qdotClass: "dot-q4", qlabel: "第4象限",
+    reason: "儲け（客観）ではなく「面白いか（主観）」を基準に行動し、日本初の総合商社を創設。茶道の大家としても知られ、文化（コト）と事業を融合させた。",
+    img: "https://commons.wikimedia.org/wiki/Special:FilePath/Masuda_Takashi.jpg?width=200",
+    initial: "孝"
+  },
+  "福原信三": {
+    company: "資生堂",
+    quote: "「物事はすべてリッチでなければならない」",
+    quadrant: "q4", qdotClass: "dot-q4", qlabel: "第4象限",
+    reason: "自らの芸術的美学（主観）を貫き、商品だけでなくパッケージ・ポスター・店内装飾すべてに魂を込めた。モノではなくブランドの世界観（コト）を提供した先駆者。",
+    img: "https://ja.wikipedia.org/wiki/Special:FilePath/%E7%A6%8F%E5%8E%9F%E4%BF%A1%E4%B8%89.jpg?width=200",
+    initial: "信"
+  },
+};
+
+const QUADRANT_COLORS = {
+  q1: "#2563eb", q2: "#7c3aed", q3: "#16a34a", q4: "#ea580c"
+};
+
+// ─── GALLERY BUILD ───
+const gallery = document.getElementById("gallery");
+Object.entries(PERSONS).forEach(([name, p]) => {
+  const card = document.createElement("div");
+  card.className = "gallery-card";
+  card.dataset.key = name;
+  card.innerHTML = `
+    <img class="gallery-img" src="${p.img}" alt="${name}"
+      onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+    <div class="gallery-fallback" style="display:none;background:${QUADRANT_COLORS[p.quadrant]}">${p.initial}</div>
+    <div class="gallery-name">${name}</div>
+    <div class="gallery-co">${p.company}</div>
+    <div class="gallery-quote">${p.quote}</div>
+    <div class="gallery-quadrant"><span class="q-dot ${p.qdotClass}"></span>${p.qlabel}</div>
+  `;
+  gallery.appendChild(card);
+});
+
+// ─── TOOLTIP LOGIC ───
+const tooltip = document.getElementById("tooltip");
+const tipImg    = document.getElementById("tip-img");
+const tipName   = document.getElementById("tip-name");
+const tipCo     = document.getElementById("tip-co");
+const tipQuote  = document.getElementById("tip-quote");
+const tipReason = document.getElementById("tip-reason");
+const tipFooter = document.getElementById("tip-footer");
+
+let mouseX = 0, mouseY = 0;
+document.addEventListener("mousemove", e => { mouseX = e.clientX; mouseY = e.clientY; });
+
+function showTooltip(name) {
+  const p = PERSONS[name];
+  if (!p) return;
+  tipName.textContent   = name;
+  tipCo.textContent     = p.company;
+  tipQuote.textContent  = p.quote;
+  tipReason.textContent = p.reason;
+  tipImg.src   = p.img;
+  tipImg.style.display = "block";
+  const tipFb = document.getElementById("tip-fallback");
+  tipFb.style.display = "none";
+  tipFooter.innerHTML = `<span class="q-dot ${p.qdotClass}"></span>${p.qlabel}`;
+
+  tipImg.onerror = () => {
+    tipImg.style.display = "none";
+    tipFb.style.display = "flex";
+    tipFb.style.background = QUADRANT_COLORS[p.quadrant];
+    tipFb.textContent = p.initial;
+  };
+
+  positionTooltip();
+  tooltip.classList.add("visible");
+}
+
+function positionTooltip() {
+  const W = tooltip.offsetWidth || 280;
+  const H = tooltip.offsetHeight || 220;
+  let x = mouseX + 16, y = mouseY + 16;
+  if (x + W > window.innerWidth  - 8) x = mouseX - W - 16;
+  if (y + H > window.innerHeight - 8) y = mouseY - H - 16;
+  tooltip.style.left = x + "px";
+  tooltip.style.top  = y + "px";
+}
+
+function hideTooltip() {
+  tooltip.classList.remove("visible");
+}
+
+// Attach events to ALL person triggers (map + gallery)
+document.addEventListener("mouseover", e => {
+  const el = e.target.closest("[data-key]");
+  if (el) { showTooltip(el.dataset.key); return; }
+  const outside = !e.target.closest("#tooltip");
+  if (outside) hideTooltip();
+});
+document.addEventListener("mousemove", () => {
+  if (tooltip.classList.contains("visible")) positionTooltip();
+});
+
+// ─── IMAGE FALLBACK (for map bubbles) ───
+function imgFallback(img, initial) {
+  const wrap = img.parentElement;
+  img.style.display = "none";
+  const fb = document.createElement("div");
+  fb.className = "bubble-fallback";
+  fb.textContent = initial;
+  wrap.appendChild(fb);
+}
+</script>
+</body>
+</html>
